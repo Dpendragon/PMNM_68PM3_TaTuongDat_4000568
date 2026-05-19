@@ -3,11 +3,13 @@ class sinhvien
 {
   public function index()
   {
-    echo "Đây là trang sinh viên";
+    // Trả về View
+    require_once "../app/views/sinhvien/index.php";
   }
 
   public function create()
   {
-    echo "Đây là trang tạo sinh viên";
+    // Trả về View
+    require_once "../app/views/sinhvien/create.php";
   }
 }
