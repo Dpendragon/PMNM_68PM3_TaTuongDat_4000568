@@ -6,10 +6,6 @@ class lophoc extends Controller
   {
     $search = isset($_GET['search']) ? trim($_GET['search']) : "";
 
-    if (isset($_GET['search'])) {
-      $offset = 0;
-    }
-
     $lophocModel = $this->model('lophocModel');
     $result      = $lophocModel->paging((int)$limit, (int)$offset, $search);
     $lophocs     = $result['lophocs'];

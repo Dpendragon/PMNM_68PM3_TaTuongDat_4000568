@@ -36,27 +36,30 @@ class lophocModel
 
     // Query lấy dữ liệu trang hiện tại
     $query = "SELECT * FROM lophoc
-              WHERE MaLop  LIKE :search
-                 OR TenLop LIKE :search
+              WHERE MaLop  LIKE :like1
+              OR TenLop LIKE :like2
+              ORDER BY id ASC
               LIMIT :limit OFFSET :offset";
 
     $stmt = $this->conn->prepare($query);
-    $stmt->bindParam(':search', $searchParam);
-    $stmt->bindParam(':limit',  $limit,  PDO::PARAM_INT);
-    $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+    $stmt->bindValue(':like1', $searchParam);
+    $stmt->bindValue(':like2', $searchParam);
+    $stmt->bindValue(':limit',  $limit,  PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $countQuery = "SELECT COUNT(*) FROM lophoc
-                   WHERE MaLop  LIKE :search
-                      OR TenLop LIKE :search";
+                   WHERE MaLop  LIKE :like1
+                      OR TenLop LIKE :like2";
 
     $countStmt = $this->conn->prepare($countQuery);
-    $countStmt->bindParam(':search', $searchParam);
+    $countStmt->bindValue(':like1', $searchParam);
+    $countStmt->bindValue(':like2', $searchParam);
     $countStmt->execute();
     $totalRecords = $countStmt->fetchColumn();
 
-    $totalPages = ($limit > 0) ? ceil($totalRecords / $limit) : 1;
+    $totalPages = ($totalRecords > 0) ? ceil($totalRecords / $limit) : 1;
 
     return [
       'lophocs'    => $result,
