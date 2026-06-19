@@ -14,10 +14,69 @@
   .toolbar {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     flex-wrap: wrap;
     gap: .6rem;
     margin-bottom: 1rem;
+  }
+
+  .search-form {
+    display: flex;
+    gap: 6px;
+  }
+
+  .search-form input[type="text"] {
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    padding: 7px 12px;
+    font-size: .875rem;
+    width: 240px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+
+  .search-form input[type="text"]:focus {
+    border-color: #1a56db;
+    box-shadow: 0 0 0 3px rgba(26, 86, 219, .12);
+  }
+
+  .search-form button {
+    border: none;
+    border-radius: 7px;
+    padding: 7px 14px;
+    font-size: .875rem;
+    background: #1a56db;
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: background .15s;
+  }
+
+  .search-form button:hover {
+    background: #1240a8;
+  }
+
+  .search-badge {
+    font-size: .8rem;
+    color: #64748b;
+    background: #f1f5f9;
+    border-radius: 6px;
+    padding: 4px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .search-badge a {
+    color: #dc2626;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .search-badge a:hover {
+    text-decoration: underline;
   }
 
   .data-card {
@@ -156,11 +215,35 @@
 </div>
 
 <div class="toolbar">
+  <!-- Form tìm kiếm -->
+  <form class="search-form" action="/sinhvien/index" method="get">
+    <input
+      type="text"
+      name="search"
+      placeholder="Tìm theo MSSV, Họ Tên, Lớp"
+      value="<?php echo htmlspecialchars($search); ?>">
+    <button type="submit">
+      <i class="bi bi-search"></i> Tìm
+    </button>
+  </form>
+
   <a href="/sinhvien/create" class="btn btn-primary btn-sm"
     style="font-size:.85rem; border-radius:7px; padding:7px 16px;">
     <i class="bi bi-plus-lg me-1"></i> Thêm sinh viên
   </a>
 </div>
+
+<!-- Badge hiển thị khi đang lọc -->
+<?php if ($search !== '') : ?>
+  <div style="margin-bottom:.75rem;">
+    <span class="search-badge">
+      <i class="bi bi-funnel-fill"></i>
+      Kết quả cho: <strong><?php echo htmlspecialchars($search); ?></strong>
+      &nbsp;—&nbsp;
+      <a href="/sinhvien/index">✕ Xoá bộ lọc</a>
+    </span>
+  </div>
+<?php endif; ?>
 
 <div class="data-card">
   <table class="data-table">
@@ -210,7 +293,7 @@
       <?php if (empty($sinhviens)) : ?>
         <tr>
           <td colspan="6" style="text-align:center; padding:2rem; color:#94a3b8;">
-            Chưa có dữ liệu sinh viên.
+            <?php echo ($search !== '') ? 'Không tìm thấy kết quả nào.' : 'Chưa có dữ liệu sinh viên.'; ?>
           </td>
         </tr>
       <?php endif; ?>
@@ -222,9 +305,12 @@
       <?php for ($i = 1; $i <= $totalPages; $i++) :
         $pageOffset = ($i - 1) * $pageSize;
         $isCurrent  = ($pageOffset == $offset) ? 'current' : '';
+        $searchParam = ($search !== '') ? '?search=' . urlencode($search) : '';
       ?>
-        <a href="/sinhvien/index/<?php echo $pageSize; ?>/<?php echo $pageOffset; ?>"
-          class="page-btn <?php echo $isCurrent; ?>"><?php echo $i; ?></a>
+        <a href="/sinhvien/index/<?php echo $pageSize; ?>/<?php echo $pageOffset; ?><?php echo $searchParam; ?>"
+          class="page-btn <?php echo $isCurrent; ?>">
+          <?php echo $i; ?>
+        </a>
       <?php endfor; ?>
     </div>
   <?php endif; ?>

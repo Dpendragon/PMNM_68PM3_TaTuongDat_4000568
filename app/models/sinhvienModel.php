@@ -18,21 +18,57 @@ class sinhvienModel
 
   public function paging($limit = 5, $offset = 0, $search = "")
   {
-    $baseWhere = "FROM sinhvien sv LEFT JOIN lophoc lh ON sv.MaLop = lh.MaLop";
-    $query = "SELECT sv.*, lh.TenLop $baseWhere LIMIT :limit OFFSET :offset";
-    $stmt = $this->conn->prepare($query);
-    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
-    $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+    $search = trim($search);
+
+    $baseFrom = "FROM sinhvien sv
+                 LEFT JOIN lophoc lh ON sv.MaLop = lh.MaLop";
+
+    if ($search !== "") {
+      $like = "%" . $search . "%";
+
+      $whereClause = "WHERE sv.MSSV  LIKE :like
+                         OR sv.HoTen LIKE :like2
+                         OR lh.TenLop LIKE :like3";
+
+      // Đếm tổng bản ghi khớp
+      $countStmt = $this->conn->prepare("SELECT COUNT(*) $baseFrom $whereClause");
+      $countStmt->bindValue(':like',  $like);
+      $countStmt->bindValue(':like2', $like);
+      $countStmt->bindValue(':like3', $like);
+      $countStmt->execute();
+      $totalRecords = (int) $countStmt->fetchColumn();
+
+      // Lấy dữ liệu trang hiện tại
+      $stmt = $this->conn->prepare(
+        "SELECT sv.*, lh.TenLop
+         $baseFrom
+         $whereClause
+         ORDER BY sv.id ASC
+         LIMIT :limit OFFSET :offset"
+      );
+      $stmt->bindValue(':like',   $like);
+      $stmt->bindValue(':like2',  $like);
+      $stmt->bindValue(':like3',  $like);
+      $stmt->bindValue(':limit',  $limit,  PDO::PARAM_INT);
+      $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    } else {
+      $totalRecords = (int) $this->conn->query("SELECT COUNT(*) FROM sinhvien")->fetchColumn();
+
+      $stmt = $this->conn->prepare(
+        "SELECT sv.*, lh.TenLop
+         $baseFrom
+         ORDER BY sv.id ASC
+         LIMIT :limit OFFSET :offset"
+      );
+      $stmt->bindValue(':limit',  $limit,  PDO::PARAM_INT);
+      $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    }
+
     $stmt->execute();
-    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $sinhviens  = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $totalPages = ($totalRecords > 0) ? (int) ceil($totalRecords / $limit) : 1;
 
-    // Tính tổng số bảng ghi
-    $selectAllQuery = $this->conn->query("SELECT COUNT(*) FROM sinhvien");
-    $totalRecords = $selectAllQuery->fetchColumn();
-
-    $totalPages = ceil($totalRecords / $limit);
-
-    return ['sinhviens' => $result, 'totalPages' => $totalPages];
+    return ['sinhviens' => $sinhviens, 'totalPages' => $totalPages];
   }
 
   public function getSinhVienById($id)
