@@ -20,6 +20,13 @@
     margin-bottom: 1rem;
   }
 
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
   .search-form {
     display: flex;
     gap: 6px;
@@ -58,6 +65,32 @@
     background: #1240a8;
   }
 
+  .pagesize-form {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .85rem;
+    color: #64748b;
+  }
+
+  .pagesize-form select {
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: .85rem;
+    color: #334155;
+    background: #fff;
+    cursor: pointer;
+    outline: none;
+    transition: border-color .15s;
+  }
+
+  .pagesize-form select:focus {
+    border-color: #1a56db;
+    box-shadow: 0 0 0 3px rgba(26, 86, 219, .12);
+  }
+
+  /* badge */
   .search-badge {
     font-size: .8rem;
     color: #64748b;
@@ -79,6 +112,7 @@
     text-decoration: underline;
   }
 
+  /* table */
   .data-card {
     background: #fff;
     border-radius: 10px;
@@ -172,6 +206,7 @@
     display: inline;
   }
 
+  /* pagination */
   .pagination-wrap {
     padding: 14px 16px;
     border-top: 1px solid #f1f5f9;
@@ -210,22 +245,58 @@
   }
 </style>
 
+<?php
+function buildQuery(string $search, int $pageSize, array $overrides = [])
+{
+  $params = [];
+  if (!empty($search))    $params['search']   = $search;
+  if ($pageSize !== 5)    $params['pageSize']  = $pageSize;
+
+  foreach ($overrides as $k => $v) {
+    if ($v !== null) $params[$k] = $v;
+    else unset($params[$k]);
+  }
+  return empty($params) ? '' : '?' . http_build_query($params);
+}
+?>
+
 <div class="page-title">
   <span><?php echo htmlspecialchars($title); ?></span>
 </div>
 
 <div class="toolbar">
-  <!-- Form tìm kiếm -->
-  <form class="search-form" action="/sinhvien/index" method="get">
-    <input
-      type="text"
-      name="search"
-      placeholder="Tìm theo MSSV, Họ Tên, Lớp"
-      value="<?php echo htmlspecialchars($search); ?>">
-    <button type="submit">
-      <i class="bi bi-search"></i> Tìm
-    </button>
-  </form>
+  <div class="toolbar-left">
+    <!-- Search -->
+    <form class="search-form" action="/sinhvien/index" method="get">
+      <?php if ($pageSize !== 5) : ?>
+        <input type="hidden" name="pageSize" value="<?php echo $pageSize; ?>">
+      <?php endif; ?>
+      <input
+        type="text"
+        name="search"
+        placeholder="Tìm theo MSSV, Họ Tên, Lớp"
+        value="<?php echo htmlspecialchars($search); ?>">
+      <button type="submit">
+        <i class="bi bi-search"></i> Tìm
+      </button>
+    </form>
+
+    <!-- PageSize selector -->
+    <form class="pagesize-form" action="/sinhvien/index" method="get">
+      <?php if ($search !== '') : ?>
+        <input type="hidden" name="search" value="<?php echo htmlspecialchars($search); ?>">
+      <?php endif; ?>
+      <label for="pageSize">Hiển thị</label>
+      <select id="pageSize" name="pageSize" onchange="this.form.submit()">
+        <?php foreach ($allowedPageSizes as $size) : ?>
+          <option value="<?php echo $size; ?>" <?php echo ($size === $pageSize) ? 'selected' : ''; ?>>
+            <?php echo $size; ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+      <span>dòng</span>
+    </form>
+  </div>
 
   <a href="/sinhvien/create" class="btn btn-primary btn-sm"
     style="font-size:.85rem; border-radius:7px; padding:7px 16px;">
@@ -233,18 +304,19 @@
   </a>
 </div>
 
-<!-- Badge hiển thị khi đang lọc -->
+<!-- Badge khi đang lọc -->
 <?php if ($search !== '') : ?>
   <div style="margin-bottom:.75rem;">
     <span class="search-badge">
       <i class="bi bi-funnel-fill"></i>
       Kết quả cho: <strong><?php echo htmlspecialchars($search); ?></strong>
       &nbsp;—&nbsp;
-      <a href="/sinhvien/index">✕ Xoá bộ lọc</a>
+      <a href="/sinhvien/index<?php echo buildQuery($search, $pageSize, ['search' => null]); ?>">✕ Xoá bộ lọc</a>
     </span>
   </div>
 <?php endif; ?>
 
+<!-- Bảng -->
 <div class="data-card">
   <table class="data-table">
     <thead>
@@ -279,7 +351,8 @@
                 <i class="bi bi-pencil"></i> Sửa
               </a>
               <form class="delete-form"
-                action="/sinhvien/delete/<?php echo $sv['id']; ?>" method="post"
+                action="/sinhvien/delete/<?php echo $sv['id']; ?>"
+                method="post"
                 onsubmit="return confirm('Xóa sinh viên này?')">
                 <button type="submit" class="btn-delete">
                   <i class="bi bi-trash"></i> Xóa
@@ -300,15 +373,15 @@
     </tbody>
   </table>
 
+  <!-- Pagination -->
   <?php if ($totalPages > 1) : ?>
     <div class="pagination-wrap">
       <?php for ($i = 1; $i <= $totalPages; $i++) :
         $pageOffset = ($i - 1) * $pageSize;
         $isCurrent  = ($pageOffset == $offset) ? 'current' : '';
-        $searchParam = ($search !== '') ? '?search=' . urlencode($search) : '';
+        $pageUrl    = '/sinhvien/index/' . $pageOffset . buildQuery($search, $pageSize);
       ?>
-        <a href="/sinhvien/index/<?php echo $pageSize; ?>/<?php echo $pageOffset; ?><?php echo $searchParam; ?>"
-          class="page-btn <?php echo $isCurrent; ?>">
+        <a href="<?php echo $pageUrl; ?>" class="page-btn <?php echo $isCurrent; ?>">
           <?php echo $i; ?>
         </a>
       <?php endfor; ?>

@@ -20,6 +20,13 @@
     margin-bottom: 1rem;
   }
 
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
   .search-form {
     display: flex;
     gap: 6px;
@@ -58,6 +65,32 @@
     background: #1240a8;
   }
 
+  .pagesize-form {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .85rem;
+    color: #64748b;
+  }
+
+  .pagesize-form select {
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: .85rem;
+    color: #334155;
+    background: #fff;
+    cursor: pointer;
+    outline: none;
+    transition: border-color .15s;
+  }
+
+  .pagesize-form select:focus {
+    border-color: #1a56db;
+    box-shadow: 0 0 0 3px rgba(26, 86, 219, .12);
+  }
+
+  /* badge */
   .search-badge {
     font-size: .8rem;
     color: #64748b;
@@ -79,6 +112,7 @@
     text-decoration: underline;
   }
 
+  /* table */
   .data-card {
     background: #fff;
     border-radius: 10px;
@@ -143,7 +177,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    transition: opacity .15s;
+    transition: background .15s;
   }
 
   .btn-edit {
@@ -166,6 +200,13 @@
     color: #b91c1c;
   }
 
+  form.delete-form {
+    margin: 0;
+    padding: 0;
+    display: inline;
+  }
+
+  /* pagination */
   .pagination-wrap {
     padding: 14px 16px;
     border-top: 1px solid #f1f5f9;
@@ -204,25 +245,60 @@
   }
 </style>
 
+<?php
+function buildQuery(string $search, int $pageSize, array $overrides = [])
+{
+  $params = [];
+  if (!empty($search))    $params['search']   = $search;
+  if ($pageSize !== 5)    $params['pageSize']  = $pageSize;
+
+  foreach ($overrides as $k => $v) {
+    if ($v !== null) $params[$k] = $v;
+    else unset($params[$k]);
+  }
+  return empty($params) ? '' : '?' . http_build_query($params);
+}
+?>
+
 <!-- Tiêu đề trang -->
 <div class="page-title">
   <span><?php echo htmlspecialchars($title); ?></span>
 </div>
 
-<!-- Thanh công cụ: ô tìm kiếm + nút Thêm -->
+<!-- Thanh công cụ -->
 <div class="toolbar">
+  <div class="toolbar-left">
+    <!-- Search -->
+    <form class="search-form" action="/lophoc/index" method="get">
+      <?php if ($pageSize !== 5) : ?>
+        <input type="hidden" name="pageSize" value="<?php echo $pageSize; ?>">
+      <?php endif; ?>
+      <input
+        type="text"
+        name="search"
+        placeholder="Tìm theo MSSV, Họ Tên, Lớp"
+        value="<?php echo htmlspecialchars($search); ?>">
+      <button type="submit">
+        <i class="bi bi-search"></i> Tìm
+      </button>
+    </form>
 
-  <!-- Form tìm kiếm -->
-  <form class="search-form" action="/lophoc/index" method="get">
-    <input
-      type="text"
-      name="search"
-      placeholder="Tìm theo mã, tên lớp"
-      value="<?php echo htmlspecialchars($search); ?>">
-    <button type="submit">
-      <i class="bi bi-search"></i> Tìm
-    </button>
-  </form>
+    <!-- PageSize selector -->
+    <form class="pagesize-form" action="/lophoc/index" method="get">
+      <?php if ($search !== '') : ?>
+        <input type="hidden" name="search" value="<?php echo htmlspecialchars($search); ?>">
+      <?php endif; ?>
+      <label for="pageSize">Hiển thị</label>
+      <select id="pageSize" name="pageSize" onchange="this.form.submit()">
+        <?php foreach ($allowedPageSizes as $size) : ?>
+          <option value="<?php echo $size; ?>" <?php echo ($size === $pageSize) ? 'selected' : ''; ?>>
+            <?php echo $size; ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+      <span>dòng</span>
+    </form>
+  </div>
 
   <a href="/lophoc/create" class="btn btn-primary btn-sm"
     style="font-size:.85rem; border-radius:7px; padding:7px 16px;">
@@ -237,7 +313,7 @@
       <i class="bi bi-funnel-fill"></i>
       Kết quả cho: <strong><?php echo htmlspecialchars($search); ?></strong>
       &nbsp;—&nbsp;
-      <a href="/lophoc/index">✕ Xoá bộ lọc</a>
+      <a href="/lophoc/index<?php echo buildQuery($search, $pageSize, ['search' => null]); ?>">✕ Xoá bộ lọc</a>
     </span>
   </div>
 <?php endif; ?>
@@ -294,10 +370,9 @@
       <?php for ($i = 1; $i <= $totalPages; $i++) :
         $pageOffset = ($i - 1) * $pageSize;
         $isCurrent  = ($pageOffset == $offset) ? 'current' : '';
-        $searchParam = ($search !== '') ? '?search=' . urlencode($search) : '';
+        $pageUrl    = '/lophoc/index/' . $pageOffset . buildQuery($search, $pageSize);
       ?>
-        <a href="/lophoc/index/<?php echo $pageSize; ?>/<?php echo $pageOffset; ?><?php echo $searchParam; ?>"
-          class="page-btn <?php echo $isCurrent; ?>">
+        <a href="<?php echo $pageUrl; ?>" class="page-btn <?php echo $isCurrent; ?>">
           <?php echo $i; ?>
         </a>
       <?php endfor; ?>

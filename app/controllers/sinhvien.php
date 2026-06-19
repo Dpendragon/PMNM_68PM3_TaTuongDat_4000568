@@ -2,12 +2,19 @@
 require_once "../app/core/controller.php";
 class sinhvien extends Controller
 {
-  public function index($limit = 5, $offset = 0, $search = "")
+  public function index($offset = 0)
   {
+    $allowedPageSizes = [5, 10, 25, 50];
+
+    $pageSize = isset($_GET['pageSize']) ? (int) $_GET['pageSize'] : 5;
+    if (!in_array($pageSize, $allowedPageSizes, true)) {
+      $pageSize = 5;
+    }
+
     $search = isset($_GET['search']) ? trim((string) $_GET['search']) : '';
 
     $sinhvienModel = $this->model('sinhvienModel');
-    $result      = $sinhvienModel->paging((int)$limit, (int)$offset, $search);
+    $result      = $sinhvienModel->paging((int)$pageSize, (int)$offset, $search);
     $sinhviens   = $result['sinhviens'];
     $totalPages  = $result['totalPages'];
 
@@ -17,8 +24,9 @@ class sinhvien extends Controller
       'sinhviens'  => $sinhviens,
       'totalPages' => $totalPages,
       'offset'     => $offset,
-      'pageSize'   => $limit,
+      'pageSize'   => $pageSize,
       'search'     => $search,
+      'allowedPageSizes' => $allowedPageSizes,
     ]);
   }
 

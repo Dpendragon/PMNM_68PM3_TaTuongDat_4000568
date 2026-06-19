@@ -2,12 +2,19 @@
 require_once '../app/core/Controller.php';
 class lophoc extends Controller
 {
-  public function index($limit = 5, $offset = 0)
+  public function index($offset = 0)
   {
+    $allowedPageSizes = [5, 10, 25, 50];
+
+    $pageSize = isset($_GET['pageSize']) ? (int) $_GET['pageSize'] : 5;
+    if (!in_array($pageSize, $allowedPageSizes, true)) {
+      $pageSize = 5;
+    }
+
     $search = isset($_GET['search']) ? trim($_GET['search']) : "";
 
     $lophocModel = $this->model('lophocModel');
-    $result      = $lophocModel->paging((int)$limit, (int)$offset, $search);
+    $result      = $lophocModel->paging((int)$pageSize, (int)$offset, $search);
     $lophocs     = $result['lophocs'];
     $totalPages  = $result['totalPages'];
 
@@ -17,8 +24,9 @@ class lophoc extends Controller
       'title'      => 'Danh sách lớp học',
       'totalPages' => $totalPages,
       'offset'     => (int)$offset,
-      'pageSize'   => (int)$limit,
+      'pageSize'   => (int)$pageSize,
       'search'     => $search,
+      'allowedPageSizes' => $allowedPageSizes,
     ]);
   }
 
