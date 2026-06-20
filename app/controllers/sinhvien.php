@@ -11,10 +11,19 @@ class sinhvien extends Controller
       $pageSize = 5;
     }
 
+    $allowedSortCols = ['MSSV', 'HoTen'];
+    $sortBy = (isset($_GET['sortBy']) && in_array($_GET['sortBy'], $allowedSortCols, true))
+      ? $_GET['sortBy']
+      : 'id';
+
+    $sortDir = (isset($_GET['sortDir']) && strtoupper($_GET['sortDir']) === 'DESC')
+      ? 'DESC'
+      : 'ASC';
+
     $search = isset($_GET['search']) ? trim((string) $_GET['search']) : '';
 
     $sinhvienModel = $this->model('sinhvienModel');
-    $result      = $sinhvienModel->paging((int)$pageSize, (int)$offset, $search);
+    $result      = $sinhvienModel->paging((int)$pageSize, (int)$offset, $search, $sortBy, $sortDir);
     $sinhviens   = $result['sinhviens'];
     $totalPages  = $result['totalPages'];
 
@@ -26,6 +35,8 @@ class sinhvien extends Controller
       'offset'     => $offset,
       'pageSize'   => $pageSize,
       'search'     => $search,
+      'sortBy'     => $sortBy,
+      'sortDir'    => $sortDir,
       'allowedPageSizes' => $allowedPageSizes,
     ]);
   }

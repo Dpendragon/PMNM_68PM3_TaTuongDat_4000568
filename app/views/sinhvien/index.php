@@ -135,6 +135,29 @@
     white-space: nowrap;
   }
 
+  .sort-link {
+    color: #fff;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+  }
+
+  .sort-link:hover {
+    color: #dbeafe;
+  }
+
+  .sort-icon {
+    font-size: .75rem;
+    opacity: .45;
+    transition: opacity .15s;
+  }
+
+  .sort-icon.active {
+    opacity: 1;
+  }
+
   .data-table tbody tr {
     border-bottom: 1px solid #f1f5f9;
     transition: background .12s;
@@ -246,11 +269,15 @@
 </style>
 
 <?php
-function buildQuery(string $search, int $pageSize, array $overrides = [])
+function buildQuery(string $search, int $pageSize, string $sortBy, string $sortDir, array $overrides = [])
 {
   $params = [];
   if (!empty($search))    $params['search']   = $search;
   if ($pageSize !== 5)    $params['pageSize']  = $pageSize;
+  if ($sortBy !== 'id') {
+    $params['sortBy']  = $sortBy;
+    $params['sortDir'] = $sortDir;
+  }
 
   foreach ($overrides as $k => $v) {
     if ($v !== null) $params[$k] = $v;
@@ -258,6 +285,22 @@ function buildQuery(string $search, int $pageSize, array $overrides = [])
   }
   return empty($params) ? '' : '?' . http_build_query($params);
 }
+
+function sortUrl(string $col, string $curSortBy, string $curSortDir, string $search, int $pageSize)
+{
+  $nextDir = ($curSortBy === $col && $curSortDir === 'ASC') ? 'DESC' : 'ASC';
+  return '/sinhvien/index' . buildQuery($search, $pageSize, $col, $nextDir);
+}
+
+function sortIcon(string $col, string $curSortBy, string $curSortDir)
+{
+  if ($curSortBy !== $col) {
+    return '<i class="bi bi-arrow-down-up sort-icon"></i>';
+  }
+  $icon = ($curSortDir === 'ASC') ? 'bi-arrow-up' : 'bi-arrow-down';
+  return "<i class=\"bi $icon sort-icon active\"></i>";
+}
+
 ?>
 
 <div class="page-title">
@@ -270,6 +313,10 @@ function buildQuery(string $search, int $pageSize, array $overrides = [])
     <form class="search-form" action="/sinhvien/index" method="get">
       <?php if ($pageSize !== 5) : ?>
         <input type="hidden" name="pageSize" value="<?php echo $pageSize; ?>">
+      <?php endif; ?>
+      <?php if ($sortBy !== 'id') : ?>
+        <input type="hidden" name="sortBy" value="<?php echo htmlspecialchars($sortBy); ?>">
+        <input type="hidden" name="sortDir" value="<?php echo htmlspecialchars($sortDir); ?>">
       <?php endif; ?>
       <input
         type="text"
@@ -285,6 +332,10 @@ function buildQuery(string $search, int $pageSize, array $overrides = [])
     <form class="pagesize-form" action="/sinhvien/index" method="get">
       <?php if ($search !== '') : ?>
         <input type="hidden" name="search" value="<?php echo htmlspecialchars($search); ?>">
+      <?php endif; ?>
+      <?php if ($sortBy !== 'id') : ?>
+        <input type="hidden" name="sortBy" value="<?php echo htmlspecialchars($sortBy); ?>">
+        <input type="hidden" name="sortDir" value="<?php echo htmlspecialchars($sortDir); ?>">
       <?php endif; ?>
       <label for="pageSize">Hiển thị</label>
       <select id="pageSize" name="pageSize" onchange="this.form.submit()">
@@ -311,7 +362,7 @@ function buildQuery(string $search, int $pageSize, array $overrides = [])
       <i class="bi bi-funnel-fill"></i>
       Kết quả cho: <strong><?php echo htmlspecialchars($search); ?></strong>
       &nbsp;—&nbsp;
-      <a href="/sinhvien/index<?php echo buildQuery($search, $pageSize, ['search' => null]); ?>">✕ Xoá bộ lọc</a>
+      <a href="/sinhvien/index<?php echo buildQuery($search, $pageSize, $sortBy, $sortDir, ['search' => null]); ?>">✕ Xoá bộ lọc</a>
     </span>
   </div>
 <?php endif; ?>
@@ -322,8 +373,16 @@ function buildQuery(string $search, int $pageSize, array $overrides = [])
     <thead>
       <tr>
         <th style="width:52px">STT</th>
-        <th>MSSV</th>
-        <th>Họ Tên</th>
+        <th>
+          <a class="sort-link" href="<?php echo sortUrl('MSSV', $sortBy, $sortDir, $search, $pageSize); ?>">
+            MSSV <?php echo sortIcon('MSSV', $sortBy, $sortDir); ?>
+          </a>
+        </th>
+        <th>
+          <a class="sort-link" href="<?php echo sortUrl('HoTen', $sortBy, $sortDir, $search, $pageSize); ?>">
+            Họ Tên <?php echo sortIcon('HoTen', $sortBy, $sortDir); ?>
+          </a>
+        </th>
         <th>Giới Tính</th>
         <th>Lớp Học</th>
         <th style="width:140px">Thao tác</th>
@@ -379,7 +438,8 @@ function buildQuery(string $search, int $pageSize, array $overrides = [])
       <?php for ($i = 1; $i <= $totalPages; $i++) :
         $pageOffset = ($i - 1) * $pageSize;
         $isCurrent  = ($pageOffset == $offset) ? 'current' : '';
-        $pageUrl    = '/sinhvien/index/' . $pageOffset . buildQuery($search, $pageSize);
+        $pageUrl    = '/sinhvien/index/' . $pageOffset
+          . buildQuery($search, $pageSize, $sortBy, $sortDir);
       ?>
         <a href="<?php echo $pageUrl; ?>" class="page-btn <?php echo $isCurrent; ?>">
           <?php echo $i; ?>
