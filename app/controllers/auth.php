@@ -1,5 +1,4 @@
 <?php
-session_start();
 class auth
 {
   protected $user = [
@@ -7,6 +6,7 @@ class auth
     'user1' => 'password1',
     'user2' => 'password2'
   ];
+
   public function login()
   {
     if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -18,9 +18,18 @@ class auth
         header('Location: /home/index');
         exit();
       } else {
+        $_SESSION['login_error'] = 'Tên đăng nhập hoặc mật khẩu không đúng.';
         header('Location: /home/login');
         exit();
       }
     }
+  }
+
+  public function logout(): void
+  {
+    $_SESSION = [];
+    session_destroy();
+    header('Location: /home/login');
+    exit();
   }
 }
